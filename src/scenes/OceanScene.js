@@ -1,7 +1,10 @@
 import { Container, Graphics } from 'pixi.js'
 import { Bubbles } from '../entities/Bubbles.js'
 import { Whale } from '../entities/Whale.js'
+import { Spikes } from '../entities/Spikes.js'
 import { MarketSim } from '../trading/MarketSim.js'
+import { TradingEngine } from '../trading/TradingEngine.js'
+import { TradingPanel } from '../ui/TradingPanel.js'
 
 export class OceanScene {
   constructor(app) {
@@ -10,6 +13,7 @@ export class OceanScene {
     this.app.stage.addChild(this.container)
     this.time = 0
     this.currentPrice = 85000
+    this.prevPrice = 85000
     this.minPrice = 75000
     this.maxPrice = 95000
   }
@@ -20,17 +24,38 @@ export class OceanScene {
     this._drawSurface()
     this.bubbles = new Bubbles(this.app, this.container)
     this.whale = new Whale(this.app, this.container)
+    this.spikes = new Spikes(this.app, this.container)
+    this.spikes.hide()
 
-    // Start market
+    this.engine = new TradingEngine(10000)
+    this.engine.subscribe(state => this.panel.updateState(state))
+
+    this.panel = new TradingPanel(
+      (type, amount, leverage) => this._openPosition(type, amount, leverage),
+      () => this._closePosition()
+    )
+    this.panel.updateState(this.engine.getState())
+
     this.market = new MarketSim()
-    this.market.subscribe((price) => this._onPriceUpdate(price))
+    this.market.subscribe(price => this._onPriceUpdate(price))
     this.market.start()
   }
 
+  _openPosition(type, amount, leverage) {
+    const result = this.engine.openPosition(type, amount, leverage, this.currentPrice)
+    if (result.error) { alert(result.error); return }
+    this.spikes.show(type, result.position.liqPrice)
+  }
+
+  _closePosition() {
+    const result = this.engine.closePosition(this.currentPrice)
+    if (result) this.spikes.hide()
+  }
+
   _onPriceUpdate(price) {
+    this.prevPrice = this.currentPrice
     this.currentPrice = price
 
-    // Update price range dynamically
     const history = this.market.getHistory()
     if (history.length > 10) {
       const prices = history.map(h => h.price)
@@ -38,17 +63,42 @@ export class OceanScene {
       this.maxPrice = Math.max(...prices) * 1.002
     }
 
-    // Map price to Y position on screen
     const { height } = this.app.screen
     const margin = height * 0.12
     const range = this.maxPrice - this.minPrice
-    const ratio = range > 0
-      ? (price - this.minPrice) / range
-      : 0.5
-
-    // Higher price = higher on screen = lower Y value
+    const ratio = range > 0 ? (price - this.minPrice) / range : 0.5
     const targetY = margin + (1 - ratio) * (height - margin * 2)
     this.whale.setTargetY(targetY)
+
+    this.panel.updatePrice(price, this.prevPrice)
+    this.spikes.updatePrices(price, this.minPrice, this.maxPrice)
+
+    // Check liquidation
+    const result = this.engine.updatePnL(price)
+    if (result?.liquidated) {
+      this.spikes.hide()
+      this._onLiquidation(result)
+    }
+  }
+
+  _onLiquidation(result) {
+    // Flash red screen
+    const flash = new Graphics()
+    flash.rect(0, 0, this.app.screen.width, this.app.screen.height)
+    flash.fill({ color: 0xff0022, alpha: 0.45 })
+    this.app.stage.addChild(flash)
+    let flashAlpha = 0.45
+    const fadeFlash = () => {
+      flashAlpha -= 0.02
+      flash.alpha = flashAlpha
+      if (flashAlpha > 0) requestAnimationFrame(fadeFlash)
+      else this.app.stage.removeChild(flash)
+    }
+    fadeFlash()
+
+    setTimeout(() => {
+      alert(`💀 LIQUIDADO\nPerdiste $${Math.abs(result.pnl).toFixed(2)}`)
+    }, 300)
   }
 
   _drawBackground() {
@@ -137,6 +187,12 @@ export class OceanScene {
     this._updateSurface(this.time)
     this.bubbles.update(delta)
     this.whale.update(delta)
+
+    const pos = this.engine.getState().position
+    if (pos) {
+      this.spikes.update(delta)
+      this.panel.updateDangerBar(this.spikes.dangerRatio)
+    }
   }
 
   onResize() {
@@ -146,6 +202,7 @@ export class OceanScene {
     this._drawSurface()
     this.bubbles = new Bubbles(this.app, this.container)
     this.whale = new Whale(this.app, this.container)
+    this.spikes = new Spikes(this.app, this.container)
   }
 
   destroy() {
