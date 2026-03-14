@@ -1,6 +1,7 @@
 import { Container, Graphics } from 'pixi.js'
 import { Bubbles } from '../entities/Bubbles.js'
 import { Whale } from '../entities/Whale.js'
+import { MarketSim } from '../trading/MarketSim.js'
 
 export class OceanScene {
   constructor(app) {
@@ -8,6 +9,9 @@ export class OceanScene {
     this.container = new Container()
     this.app.stage.addChild(this.container)
     this.time = 0
+    this.currentPrice = 85000
+    this.minPrice = 75000
+    this.maxPrice = 95000
   }
 
   async init() {
@@ -17,8 +21,34 @@ export class OceanScene {
     this.bubbles = new Bubbles(this.app, this.container)
     this.whale = new Whale(this.app, this.container)
 
-    // Demo: move whale up and down slowly
-    this._demoTimer = 0
+    // Start market
+    this.market = new MarketSim()
+    this.market.subscribe((price) => this._onPriceUpdate(price))
+    this.market.start()
+  }
+
+  _onPriceUpdate(price) {
+    this.currentPrice = price
+
+    // Update price range dynamically
+    const history = this.market.getHistory()
+    if (history.length > 10) {
+      const prices = history.map(h => h.price)
+      this.minPrice = Math.min(...prices) * 0.998
+      this.maxPrice = Math.max(...prices) * 1.002
+    }
+
+    // Map price to Y position on screen
+    const { height } = this.app.screen
+    const margin = height * 0.12
+    const range = this.maxPrice - this.minPrice
+    const ratio = range > 0
+      ? (price - this.minPrice) / range
+      : 0.5
+
+    // Higher price = higher on screen = lower Y value
+    const targetY = margin + (1 - ratio) * (height - margin * 2)
+    this.whale.setTargetY(targetY)
   }
 
   _drawBackground() {
@@ -29,11 +59,9 @@ export class OceanScene {
     bg.rect(0, height * 0.40, width, height * 0.30).fill(0x041d30)
     bg.rect(0, height * 0.70, width, height * 0.30).fill(0x020f1c)
     this.container.addChild(bg)
-    this.bgGraphic = bg
   }
 
   _drawLightRays() {
-    const { width, height } = this.app.screen
     this.raysGraphic = new Graphics()
     this.container.addChild(this.raysGraphic)
     this._updateRays(0)
@@ -67,7 +95,6 @@ export class OceanScene {
   }
 
   _drawSurface() {
-    const { width } = this.app.screen
     this.surfaceGraphic = new Graphics()
     this.container.addChild(this.surfaceGraphic)
     this._updateSurface(0)
@@ -106,13 +133,6 @@ export class OceanScene {
 
   update(delta) {
     this.time += delta * 0.05
-    this._demoTimer += delta * 0.012
-
-    // Demo sine wave movement until market is connected
-    const centerY = this.app.screen.height * 0.5
-    const demoY = centerY + Math.sin(this._demoTimer) * this.app.screen.height * 0.22
-    this.whale.setTargetY(demoY)
-
     this._updateRays(this.time)
     this._updateSurface(this.time)
     this.bubbles.update(delta)
@@ -126,5 +146,9 @@ export class OceanScene {
     this._drawSurface()
     this.bubbles = new Bubbles(this.app, this.container)
     this.whale = new Whale(this.app, this.container)
+  }
+
+  destroy() {
+    this.market.stop()
   }
 }
