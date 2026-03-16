@@ -8,6 +8,13 @@ import { TradingPanel } from '../ui/TradingPanel.js'
 import { ResultScene } from './ResultScene.js'
 import { ScreenFX } from '../fx/ScreenFX.js'
 import { Particles } from '../fx/Particles.js'
+import { PricePopup } from '../ui/PricePopup.js'
+import { SeaFloor } from '../entities/SeaFloor.js'
+import { SmallFish } from '../entities/SmallFish.js'
+import { LevelLines } from '../ui/LevelLines.js'
+import { Analytics } from '../analytics.js'
+
+
 
 export class OceanScene {
   constructor(app) {
@@ -24,25 +31,51 @@ export class OceanScene {
   async init() {
     this._drawBackground()
     this._drawLightRays()
-    this._drawSurface()
+   
+    
+
+    this.seaFloor = new SeaFloor(this.app, this.container)
+    this.smallFish = new SmallFish(this.app, this.container)
     this.bubbles = new Bubbles(this.app, this.container)
-    this.whale = new Whale(this.app, this.container)
-    this.spikes = new Spikes(this.app, this.container)
+
+     this._drawSurface()
+
+
+        this.spikes = new Spikes(this.app, this.container)
     this.spikes.hide()
+
+    this.whale = new Whale(this.app, this.container)
+    await this.whale.load()
+
+ 
+
+  // ← LevelLines en su propio container ENCIMA de todo
+  this.overlayContainer = new Container()
+  this.app.stage.addChild(this.overlayContainer)
+  this.levelLines = new LevelLines(this.app, this.overlayContainer)
+
+    console.log('overlayContainer children:', this.overlayContainer.children.length)
+
+
 
 
     this.resultScene = new ResultScene()
     this.screenFX = new ScreenFX(this.app)
     this.particles = new Particles(this.app, this.container)
 
+    this.pricePopup = new PricePopup()
+
+
 
     this.engine = new TradingEngine(10000)
     this.engine.subscribe(state => this.panel.updateState(state))
 
+    
     this.panel = new TradingPanel(
-      (type, amount, leverage) => this._openPosition(type, amount, leverage),
-      () => this._closePosition()
-    )
+  (type, amount, leverage, stopLoss, takeProfit) => this._openPosition(type, amount, leverage, stopLoss, takeProfit),
+  () => this._closePosition()
+)
+
     this.panel.updateState(this.engine.getState())
 
     this.market = new MarketSim()
@@ -50,46 +83,110 @@ export class OceanScene {
     this.market.start()
   }
 
-  _openPosition(type, amount, leverage) {
-    const result = this.engine.openPosition(type, amount, leverage, this.currentPrice)
-    if (result.error) { alert(result.error); return }
-    this.spikes.show(type, result.position.liqPrice)
-  }
 
+  _openPosition(type, amount, leverage, stopLoss, takeProfit) {
+      console.log('OceanScene received - SL:', stopLoss, 'TP:', takeProfit)
+      Analytics.openPosition(type, leverage, amount)
 
-  async _closePosition() {
-  const pos = this.engine.getState().position
-  if (!pos) return
-  const result = this.engine.closePosition(this.currentPrice)
-  if (!result) return
-  this.spikes.hide()
+  const result = this.engine.openPosition(type, amount, leverage, this.currentPrice, stopLoss, takeProfit)
+  if (result.error) { alert(result.error); return }
+  this.spikes.show(type, result.position.liqPrice)
 
-  const state = this.engine.getState()
-  const isWin = result.pnl >= 0
-  const type = isWin ? 'win' : 'loss'
-
-  if (isWin) {
-    this.screenFX.flash(0x00ff88, 0.25, 500)
-    this.particles.btcCoins(this.whale.x, this.whale.y)
-  } else {
-    this.screenFX.flash(0xff6600, 0.3, 500)
-    this.particles.bubbleBurst(this.whale.x, this.whale.y, 15)
-  }
-
-  await new Promise(r => setTimeout(r, 300))
-
-  const lastRecord = state.history[0]
-  await this.resultScene.show(type, {
-    posType: lastRecord?.type,
-    leverage: lastRecord?.leverage,
-    entryPrice: lastRecord?.entryPrice,
-    closePrice: lastRecord?.closePrice,
-    amount: lastRecord?.amount,
-    pnl: lastRecord?.pnl,
-    newBalance: state.balance,
+    // Show level lines
+  this.levelLines.show({
+    liq: result.position.liqPrice,
+    sl: stopLoss || null,
+    tp: takeProfit || null,
+    type,
   })
+
+    console.log('LevelLines visible:', this.levelLines.visible)
+  console.log('LevelLines levels:', this.levelLines.levels)
+
+
 }
 
+  async _closePosition() {
+    const pos = this.engine.getState().position
+
+    if (!pos) return
+    const result = this.engine.closePosition(this.currentPrice)
+    if (!result) return
+    this.spikes.hide()
+    this.levelLines.hide() 
+
+
+    const state = this.engine.getState()
+    const isWin = result.pnl >= 0
+    const type = isWin ? 'win' : 'loss'
+
+    if (isWin) {
+      this.screenFX.flash(0x00ff88, 0.25, 500)
+      this.particles.btcCoins(this.whale.x, this.whale.y)
+      this.whale.celebrate()
+          Analytics.closeWin(result.pnl, pos.leverage)
+
+    } else {
+      this.screenFX.flash(0xff6600, 0.3, 500)
+      this.particles.bubbleBurst(this.whale.x, this.whale.y, 15)
+      this.whale.mourn()
+      Analytics.closeLoss(result.pnl, pos.leverage)
+
+    }
+
+    await new Promise(r => setTimeout(r, 300))
+
+    const lastRecord = state.history[0]
+    await this.resultScene.show(type, {
+      posType: lastRecord?.type,
+      leverage: lastRecord?.leverage,
+      entryPrice: lastRecord?.entryPrice,
+      closePrice: lastRecord?.closePrice,
+      amount: lastRecord?.amount,
+      pnl: lastRecord?.pnl,
+      newBalance: state.balance,
+    })
+
+    // Reset whale pose after result screen
+    this.whale.setPose('swim')
+  }
+
+  async _onLiquidation(result) {
+    const state = this.engine.getState()
+    this.screenFX.shake(16, 800)
+    this.screenFX.flash(0xff0022, 0.6, 600)
+    this.whale.die()
+    this.levelLines.hide()
+    this.particles.explode(this.whale.x, this.whale.y, {
+      count: 60,
+      colors: [0xff2244, 0xff6600, 0xff9900, 0xffcc00, 0xffffff],
+      speed: 12,
+      size: 6,
+      gravity: 0.3,
+      life: 100,
+    })
+    this.particles.bubbleBurst(this.whale.x, this.whale.y)
+
+    Analytics.liquidated(state.history[0]?.leverage, state.history[0]?.amount)
+
+
+    await new Promise(r => setTimeout(r, 400))
+
+    const lastRecord = state.history[0]
+    await this.resultScene.show('liquidated', {
+      posType: lastRecord?.type,
+      leverage: lastRecord?.leverage,
+      entryPrice: lastRecord?.entryPrice,
+      closePrice: lastRecord?.closePrice,
+      amount: lastRecord?.amount,
+      pnl: lastRecord?.pnl,
+      newBalance: state.balance,
+    })
+
+    // Reset whale after result screen
+    this.whale.alive = true
+    this.whale.setPose('swim')
+  }
 
   _onPriceUpdate(price) {
     this.prevPrice = this.currentPrice
@@ -111,34 +208,43 @@ export class OceanScene {
 
     this.panel.updatePrice(price, this.prevPrice)
     this.spikes.updatePrices(price, this.minPrice, this.maxPrice)
+    this.levelLines.updatePrices(this.minPrice, this.maxPrice)
 
-    // Check liquidation
     const result = this.engine.updatePnL(price)
-    if (result?.liquidated) {
-      this.spikes.hide()
-      this._onLiquidation(result)
-    }
+   if (result?.liquidated) {
+  this.spikes.hide()
+  this._onLiquidation(result)
+} else if (result?.trigger === 'sl' || result?.trigger === 'tp') {
+  this.spikes.hide()
+  this._closeByTrigger(result)
+}
+
+    this.pricePopup.update(price, this.whale.x, this.whale.y)
+
+
   }
 
 
-  async _onLiquidation(result) {
+  async _closeByTrigger(result) {
   const state = this.engine.getState()
-  this.screenFX.shake(16, 800)
-  this.screenFX.flash(0xff0022, 0.6, 600)
-  this.particles.explode(this.whale.x, this.whale.y, {
-    count: 60,
-    colors: [0xff2244, 0xff6600, 0xff9900, 0xffcc00, 0xffffff],
-    speed: 12,
-    size: 6,
-    gravity: 0.3,
-    life: 100,
-  })
-  this.particles.bubbleBurst(this.whale.x, this.whale.y)
+  const isWin = result.pnl >= 0
 
-  await new Promise(r => setTimeout(r, 400))
+  if (result.trigger === 'tp') {
+    this.screenFX.flash(0x00ff88, 0.25, 500)
+    this.particles.btcCoins(this.whale.x, this.whale.y)
+    this.whale.celebrate()
+  } else {
+    this.screenFX.flash(0xff6600, 0.3, 500)
+    this.particles.bubbleBurst(this.whale.x, this.whale.y, 15)
+    this.whale.mourn()
+  }
+
+  this.levelLines.hide()
+
+  await new Promise(r => setTimeout(r, 300))
 
   const lastRecord = state.history[0]
-  await this.resultScene.show('liquidated', {
+  await this.resultScene.show(isWin ? 'win' : 'loss', {
     posType: lastRecord?.type,
     leverage: lastRecord?.leverage,
     entryPrice: lastRecord?.entryPrice,
@@ -146,8 +252,12 @@ export class OceanScene {
     amount: lastRecord?.amount,
     pnl: lastRecord?.pnl,
     newBalance: state.balance,
+    trigger: result.trigger,
   })
+
+  this.whale.setPose('swim')
 }
+
 
   _drawBackground() {
     const { width, height } = this.app.screen
@@ -235,6 +345,14 @@ export class OceanScene {
     this._updateSurface(this.time)
     this.bubbles.update(delta)
     this.whale.update(delta)
+    this.particles.update(delta)
+
+    this.seaFloor.update(delta)
+    this.smallFish.update(delta)
+    this.levelLines.update(delta)
+
+
+
 
     const pos = this.engine.getState().position
     if (pos) {
@@ -242,9 +360,9 @@ export class OceanScene {
       this.panel.updateDangerBar(this.spikes.dangerRatio)
     }
 
-    this.particles.update(delta)
+    this.raysGraphic.x = -this.time * 8 % this.app.screen.width
 
-    
+
   }
 
   onResize() {
@@ -253,11 +371,11 @@ export class OceanScene {
     this._drawLightRays()
     this._drawSurface()
     this.bubbles = new Bubbles(this.app, this.container)
-    this.whale = new Whale(this.app, this.container)
-    this.spikes = new Spikes(this.app, this.container)
   }
 
   destroy() {
     this.market.stop()
+    this.pricePopup.destroy()
+
   }
 }

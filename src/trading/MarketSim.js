@@ -1,23 +1,26 @@
 export class MarketSim {
   constructor() {
     this.price = 85000
-    this.basePrice = 85000
-    this.volatility = 0.0012
-    this.trend = 0
-    this.trendTimer = 0
-    this.trendDuration = 100 + Math.random() * 200
+    this.prevPrice = 85000
     this.subscribers = []
     this.history = []
     this.maxHistory = 200
-    this.tickInterval = null
+    this.ws = null
+    this.reconnectTimer = null
+    this.isConnected = false
   }
 
   start() {
-    this.tickInterval = setInterval(() => this._tick(), 500)
+    this._connect()
   }
 
   stop() {
-    if (this.tickInterval) clearInterval(this.tickInterval)
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer)
+    if (this.ws) {
+      this.ws.onclose = null
+      this.ws.close()
+      this.ws = null
+    }
   }
 
   subscribe(fn) {
@@ -36,33 +39,71 @@ export class MarketSim {
     return [...this.history]
   }
 
-  _tick() {
-    // Change trend occasionally
-    this.trendTimer++
-    if (this.trendTimer >= this.trendDuration) {
-      this.trend = (Math.random() - 0.5) * 0.0008
-      this.trendDuration = 80 + Math.random() * 250
-      this.trendTimer = 0
+  _connect() {
+    console.log('🔌 Conectando a Binance WebSocket...')
+
+    this.ws = new WebSocket('wss://stream.binance.com/ws/btcusdt@trade')
+
+    this.ws.onopen = () => {
+      console.log('✅ Binance WebSocket conectado')
+      this.isConnected = true
     }
 
-    // Brownian motion + trend
-    const shock = (Math.random() - 0.5) * 2
-    const change = this.price * (this.volatility * shock + this.trend)
+    this.ws.onmessage = (e) => {
+      const data = JSON.parse(e.data)
+      const price = parseFloat(data.p)
+      if (!price || isNaN(price)) return
 
-    // Mean reversion so price doesn't drift to infinity
-    const reversion = (this.basePrice - this.price) * 0.0003
-    this.price = Math.max(10000, this.price + change + reversion)
+      this.prevPrice = this.price
+      this.price = price
 
-    // Store history
-    this.history.push({
-      price: this.price,
-      time: Date.now()
-    })
-    if (this.history.length > this.maxHistory) {
-      this.history.shift()
+      this.history.push({
+        price: this.price,
+        time: Date.now()
+      })
+      if (this.history.length > this.maxHistory) this.history.shift()
+
+      this.subscribers.forEach(fn => fn(this.price))
     }
 
-    // Notify all subscribers
-    this.subscribers.forEach(fn => fn(this.price))
+    this.ws.onerror = (e) => {
+      console.warn('⚠️ Binance WebSocket error, usando fallback simulado')
+      this._startFallback()
+    }
+
+    this.ws.onclose = () => {
+      console.warn('🔄 WebSocket cerrado, reconectando en 3s...')
+      this.isConnected = false
+      this.reconnectTimer = setTimeout(() => this._connect(), 3000)
+    }
+  }
+
+  // Fallback simulado si Binance no está disponible
+  _startFallback() {
+    if (this.ws) { this.ws.onclose = null; this.ws.close() }
+    console.log('🎲 Usando simulador de precio como fallback')
+
+    this.basePrice = this.price || 85000
+    this.trend = 0
+    this.trendTimer = 0
+    this.trendDuration = 100 + Math.random() * 200
+    this.volatility = 0.0012
+
+    this._fallbackInterval = setInterval(() => {
+      this.trendTimer++
+      if (this.trendTimer >= this.trendDuration) {
+        this.trend = (Math.random() - 0.5) * 0.0008
+        this.trendDuration = 80 + Math.random() * 250
+        this.trendTimer = 0
+      }
+      const shock = (Math.random() - 0.5) * 2
+      const change = this.price * (this.volatility * shock + this.trend)
+      const reversion = (this.basePrice - this.price) * 0.0003
+      this.price = Math.max(10000, this.price + change + reversion)
+
+      this.history.push({ price: this.price, time: Date.now() })
+      if (this.history.length > this.maxHistory) this.history.shift()
+      this.subscribers.forEach(fn => fn(this.price))
+    }, 500)
   }
 }

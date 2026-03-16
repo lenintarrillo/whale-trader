@@ -17,7 +17,7 @@ export class ResultScene {
         emoji: '💀',
         title: 'LIQUIDADO',
         titleColor: '#ff2244',
-        subtitle: 'La ballena fue destruida por los pinchos',
+        subtitle: '💀 BALLENA LIQUIDADA 💀',
         pnlColor: '#ff4466',
       },
       win: {
@@ -27,7 +27,7 @@ export class ResultScene {
         emoji: '🏆',
         title: '¡GANASTE!',
         titleColor: '#00ff9d',
-        subtitle: 'La ballena nadó hacia la victoria',
+        subtitle: 'La ballena Bitcoin nadó hacia la victoria',
         pnlColor: '#00ff9d',
       },
       loss: {

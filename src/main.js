@@ -1,6 +1,7 @@
 import { Application } from 'pixi.js'
 import { OceanScene } from './scenes/OceanScene.js'
-import { IntroScene } from './scenes/IntroScene.js'
+import { ProfileModal } from './ui/ProfileModal.js'
+
 
 const app = new Application()
 
@@ -14,13 +15,11 @@ await app.init({
 
 document.getElementById('game-container').appendChild(app.canvas)
 
-// Show intro first
-const intro = new IntroScene()
-await intro.show()
-
-// Then load ocean
 const ocean = new OceanScene(app)
 await ocean.init()
+
+// Profile button
+new ProfileModal()
 
 app.ticker.add((ticker) => {
   ocean.update(ticker.deltaTime)
