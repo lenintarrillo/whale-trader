@@ -1,3 +1,5 @@
+import { Analytics } from '../analytics.js'
+
 export class ProfileModal {
   constructor() {
     this._injectStyles()
