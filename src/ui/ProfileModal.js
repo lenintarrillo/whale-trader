@@ -9,7 +9,7 @@ export class ProfileModal {
     btn.id = 'profile-trigger'
     btn.innerHTML = `
       <div class="trigger-ring"></div>
-      <img src="/assets/leninprofile.png" alt="Lenin" id="profile-avatar" />
+      <img src="/leninprofile.png" alt="Lenin" id="profile-avatar" />
     `
     btn.onclick = () => this._openModal()
     document.body.appendChild(btn)

@@ -20,17 +20,20 @@ export class Whale {
   }
 
   async load() {
+   
+    
     const poses = {
-      swim:  '/assets/whale_swim.png',
-      swim2: '/assets/whale_swim2.png',
-      swim3: '/assets/whale_swim3.png',
-      up:    '/assets/whale_up.png',
-      down:  '/assets/whale_down.png',
-      happy: '/assets/whale_happy.png',
-      sad:   '/assets/whale_sad.png',
-      dead:  '/assets/whale_dead.png',
-      blink: '/assets/whale_blink.png',
-    }
+  swim:  '/whale_swim.png',
+  swim2: '/whale_swim2.png',
+  swim3: '/whale_swim3.png',
+  up:    '/whale_up.png',
+  down:  '/whale_down.png',
+  happy: '/whale_happy.png',
+  sad:   '/whale_sad.png',
+  dead:  '/whale_dead.png',
+  blink: '/whale_blink.png',
+}
+
 
     for (const [key, path] of Object.entries(poses)) {
       const texture = await Assets.load(path)
