@@ -1,5 +1,5 @@
 export class TradingEngine {
-  constructor(initialBalance = 10000) {
+  constructor(initialBalance = 1000) {
     this.balance = initialBalance
     this.initialBalance = initialBalance
     this.position = null

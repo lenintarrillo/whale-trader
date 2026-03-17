@@ -67,7 +67,7 @@ export class OceanScene {
 
 
 
-    this.engine = new TradingEngine(10000)
+    this.engine = new TradingEngine(1000)
     this.engine.subscribe(state => this.panel.updateState(state))
 
     
