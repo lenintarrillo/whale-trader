@@ -2,8 +2,11 @@ import { Application } from 'pixi.js'
 import { OceanScene } from './scenes/OceanScene.js'
 import { ProfileModal } from './ui/ProfileModal.js'
 
+console.log('1. Starting app...')
 
 const app = new Application()
+
+console.log('2. App created')
 
 await app.init({
   resizeTo: document.getElementById('game-container'),
@@ -13,12 +16,17 @@ await app.init({
   autoDensity: true,
 })
 
+console.log('3. App initialized')
+
 document.getElementById('game-container').appendChild(app.canvas)
+
+console.log('4. Canvas appended')
 
 const ocean = new OceanScene(app)
 await ocean.init()
 
-// Profile button
+console.log('5. Ocean initialized')
+
 new ProfileModal()
 
 app.ticker.add((ticker) => {
