@@ -220,22 +220,23 @@ export class OceanScene {
   }
 
   _drawBackground() {
-    const { width, height } = this.app.screen
-    const bg = new PIXI.Graphics()
-    bg.beginFill(0x020b18)
-    bg.drawRect(0, 0, width, height * 0.15)
-    bg.endFill()
-    bg.beginFill(0x031525)
-    bg.drawRect(0, height * 0.15, width, height * 0.25)
-    bg.endFill()
-    bg.beginFill(0x041d30)
-    bg.drawRect(0, height * 0.40, width, height * 0.30)
-    bg.endFill()
-    bg.beginFill(0x020f1c)
-    bg.drawRect(0, height * 0.70, width, height * 0.30)
-    bg.endFill()
-    this.container.addChild(bg)
-  }
+  const { width, height } = this.app.screen
+  const bg = new PIXI.Graphics()
+  bg.beginFill(0x020b18)
+  bg.drawRect(0, 0, width, height * 0.15)
+  bg.endFill()
+  bg.beginFill(0x031525)
+  bg.drawRect(0, height * 0.15, width, height * 0.25)
+  bg.endFill()
+  bg.beginFill(0x041d30)
+  bg.drawRect(0, height * 0.40, width, height * 0.30)
+  bg.endFill()
+  bg.beginFill(0x020f1c)
+  bg.drawRect(0, height * 0.70, width, height * 0.30)
+  bg.endFill()
+  this.container.addChildAt(bg, 0)
+  this.bgGraphic = bg
+}
 
   _drawLightRays() {
     this.raysGraphic = new PIXI.Graphics()
@@ -332,14 +333,15 @@ export class OceanScene {
   }
 
   onResize() {
-    this.container.removeChildren()
-    this._drawBackground()
-    this._drawLightRays()
-    this._drawSurface()
-    this.bubbles = new Bubbles(this.app, this.container)
-    this.whale = new Whale(this.app, this.container)
-    this.spikes = new Spikes(this.app, this.container)
-  }
+  // Limpiar solo los gráficos del fondo
+  if (this.bgGraphic) this.container.removeChild(this.bgGraphic)
+  if (this.raysGraphic) this.container.removeChild(this.raysGraphic)
+  if (this.surfaceGraphic) this.container.removeChild(this.surfaceGraphic)
+
+  this._drawBackground()
+  this._drawLightRays()
+  this._drawSurface()
+}
 
   destroy() {
     this.market.stop()

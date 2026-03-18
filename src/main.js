@@ -1,11 +1,12 @@
-import { Application } from 'pixi.js'
+import * as PIXI from 'pixi.js'
 import { OceanScene } from './scenes/OceanScene.js'
 import { ProfileModal } from './ui/ProfileModal.js'
 import { OrientationGuard } from './ui/OrientationGuard.js'
+import { LoadingScreen } from './ui/LoadingScreen.js'
 
-console.log('1. Starting app...')
+const loading = new LoadingScreen()
 
-const app = new Application({
+const app = new PIXI.Application({
   resizeTo: document.getElementById('game-container'),
   backgroundColor: 0x020b18,
   antialias: true,
@@ -13,16 +14,12 @@ const app = new Application({
   autoDensity: true,
 })
 
-console.log('2. App initialized - renderer:', app.renderer.type)
-
 document.getElementById('game-container').appendChild(app.view)
-
-console.log('3. Canvas appended')
 
 const ocean = new OceanScene(app)
 await ocean.init()
 
-console.log('4. Ocean initialized')
+loading.hide()
 
 new ProfileModal()
 new OrientationGuard()
