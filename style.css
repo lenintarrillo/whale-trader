@@ -25,3 +25,51 @@ html, body {
 #profile-trigger {
   z-index: 9999 !important;
 }
+
+/* Mobile modal scrollable fix */
+@media (max-width: 1024px) {
+  #trading-panel {
+    width: 220px;
+    font-size: 11px;
+  }
+
+  #result-overlay,
+  #profile-modal,
+  #intro-overlay {
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .result-card,
+  .profile-card {
+    width: 100%;
+    max-width: 420px;
+    margin: auto;
+    max-height: none;
+  }
+
+  .profile-card {
+    margin-top: 16px;
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  #result-overlay,
+  #profile-modal {
+    align-items: flex-start;
+    padding: 8px;
+  }
+
+  .result-card,
+  .profile-card {
+    padding: 16px;
+  }
+
+  .result-emoji { font-size: 40px; margin-bottom: 8px; }
+  .result-title { font-size: 20px; }
+  .result-stats { gap: 6px; }
+  .result-pnl   { font-size: 28px; }
+}

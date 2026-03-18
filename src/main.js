@@ -1,10 +1,11 @@
-import * as PIXI from 'pixi.js'
+import { Application } from 'pixi.js'
 import { OceanScene } from './scenes/OceanScene.js'
 import { ProfileModal } from './ui/ProfileModal.js'
+import { OrientationGuard } from './ui/OrientationGuard.js'
 
 console.log('1. Starting app...')
 
-const app = new PIXI.Application({
+const app = new Application({
   resizeTo: document.getElementById('game-container'),
   backgroundColor: 0x020b18,
   antialias: true,
@@ -24,6 +25,7 @@ await ocean.init()
 console.log('4. Ocean initialized')
 
 new ProfileModal()
+new OrientationGuard()
 
 app.ticker.add((delta) => {
   ocean.update(delta)
