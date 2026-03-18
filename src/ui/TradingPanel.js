@@ -252,7 +252,7 @@ export class TradingPanel {
 
     if (history.length > 0) {
       const listEl = document.getElementById('history-list')
-      listEl.innerHTML = history.slice(0, 5).map(h => {
+      listEl.innerHTML = history.slice(0, 20).map(h => {
         const triggerLabel = h.liquidated ? '💀 LIQ'
           : h.trigger === 'sl' ? '🛑 SL'
           : h.trigger === 'tp' ? '🎯 TP'
