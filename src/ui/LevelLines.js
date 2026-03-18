@@ -1,10 +1,10 @@
-import { Graphics } from 'pixi.js'
+import * as PIXI from 'pixi.js'
 
 export class LevelLines {
   constructor(app, parent) {
     this.app = app
     this.parent = parent
-    this.graphic = new Graphics()
+    this.graphic = new PIXI.Graphics()
     parent.addChild(this.graphic)
     this.levels = {}
     this.minPrice = null
@@ -66,21 +66,9 @@ export class LevelLines {
           letter-spacing: 1px;
           transition: top 0.15s ease;
         }
-        .level-liq {
-          color: #ff4466;
-          background: rgba(255,34,68,0.12);
-          border: 1px solid rgba(255,34,68,0.3);
-        }
-        .level-sl {
-          color: #ff8866;
-          background: rgba(255,119,68,0.12);
-          border: 1px solid rgba(255,119,68,0.3);
-        }
-        .level-tp {
-          color: #00ffaa;
-          background: rgba(0,255,170,0.12);
-          border: 1px solid rgba(0,255,170,0.3);
-        }
+        .level-liq { color: #ff4466; background: rgba(255,34,68,0.12); border: 1px solid rgba(255,34,68,0.3); }
+        .level-sl  { color: #ff8866; background: rgba(255,119,68,0.12); border: 1px solid rgba(255,119,68,0.3); }
+        .level-tp  { color: #00ffaa; background: rgba(0,255,170,0.12); border: 1px solid rgba(0,255,170,0.3); }
       `
       document.head.appendChild(style)
     }
@@ -132,7 +120,7 @@ export class LevelLines {
       const segments = 80
       const segW = width / segments
 
-      // Wavy line
+      // Wavy line usando drawRect
       for (let i = 0; i < segments; i++) {
         const x = i * segW
         const wave1 = Math.sin(x * waveFreq + this.time * waveSpeed) * waveAmp
@@ -140,18 +128,20 @@ export class LevelLines {
         const y = baseY + wave1 + wave2
         const pulse = alpha + Math.sin(this.time * 2 + i * 0.1) * 0.08
 
-        g.rect(x, y - 0.8, segW + 0.5, 1.6)
-        g.fill({ color, alpha: pulse })
+        g.beginFill(color, pulse)
+        g.drawRect(x, y - 0.8, segW + 0.5, 1.6)
+        g.endFill()
       }
 
-      // Subtle glow band
+      // Glow band
       for (let i = 0; i < segments; i += 2) {
         const x = i * segW * 2
         const wave1 = Math.sin(x * waveFreq + this.time * waveSpeed) * waveAmp
         const wave2 = Math.sin(x * waveFreq * 2.3 + this.time * waveSpeed * 0.7) * waveAmp * 0.4
         const y = baseY + wave1 + wave2
-        g.rect(x, y - 5, segW * 2, 10)
-        g.fill({ color, alpha: 0.04 })
+        g.beginFill(color, 0.04)
+        g.drawRect(x, y - 5, segW * 2, 10)
+        g.endFill()
       }
     })
 

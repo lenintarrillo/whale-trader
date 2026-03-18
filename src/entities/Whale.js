@@ -1,9 +1,9 @@
-import { Container, Sprite, Assets } from 'pixi.js'
+import * as PIXI from 'pixi.js'
 
 export class Whale {
   constructor(app, parent) {
     this.app = app
-    this.container = new Container()
+    this.container = new PIXI.Container()
     parent.addChild(this.container)
 
     this.x = app.screen.width * 0.35
@@ -20,24 +20,21 @@ export class Whale {
   }
 
   async load() {
-   
-    
     const poses = {
-  swim:  '/whale_swim.png',
-  swim2: '/whale_swim2.png',
-  swim3: '/whale_swim3.png',
-  up:    '/whale_up.png',
-  down:  '/whale_down.png',
-  happy: '/whale_happy.png',
-  sad:   '/whale_sad.png',
-  dead:  '/whale_dead.png',
-  blink: '/whale_blink.png',
-}
-
+      swim:  '/whale_swim.png',
+      swim2: '/whale_swim2.png',
+      swim3: '/whale_swim3.png',
+      up:    '/whale_up.png',
+      down:  '/whale_down.png',
+      happy: '/whale_happy.png',
+      sad:   '/whale_sad.png',
+      dead:  '/whale_dead.png',
+      blink: '/whale_blink.png',
+    }
 
     for (const [key, path] of Object.entries(poses)) {
-      const texture = await Assets.load(path)
-      const sprite = new Sprite(texture)
+      const texture = await PIXI.Assets.load(path)
+      const sprite = new PIXI.Sprite(texture)
       sprite.anchor.set(0.5)
       sprite.visible = false
       this.container.addChild(sprite)
@@ -50,16 +47,15 @@ export class Whale {
   _setPose(name) {
     if (this.currentPose === name) return
     if (this.currentSprite) this.currentSprite.visible = false
+    if (!this.sprites[name]) return
     this.currentSprite = this.sprites[name]
     this.currentSprite.visible = true
     this.currentPose = name
   }
 
   _getSwimPose(dy) {
-    // Cycle swim frames for animation
     const frame = Math.floor(this.time * 2) % 3
     const swimFrames = ['swim', 'swim2', 'swim3']
-
     if (dy < -3) return 'up'
     if (dy > 3) return 'down'
     return swimFrames[frame]
@@ -80,29 +76,19 @@ export class Whale {
 
     const dy = this.targetY - this.y
     this.y += dy * 0.038 * delta
-    
+    this.x = this.app.screen.width * 0.35 + Math.sin(this.time * 0.6) * 10
 
-
-    this.x = this.app.screen.width * 0.35
-  + Math.sin(this.time * 0.6) * 10
-  + Math.sin(this.time * 1.8) * 4
-  
-
-    // Scale based on direction for squash/stretch feel
     const tilt = Math.max(-0.25, Math.min(0.25, dy * 0.001))
     this.container.rotation = tilt
 
-    // Gentle bob scale
     const breatheScale = 1 + Math.sin(this.time * 1.4) * 0.015
     this.container.scale.set(breatheScale)
 
     this.container.x = this.x
     this.container.y = this.y
 
-    // Auto pose based on movement
     this._setPose(this._getSwimPose(dy))
 
-    // Blink logic
     this.blinkTimer++
     if (this.blinkTimer >= this.blinkInterval) {
       this._setPose('blink')

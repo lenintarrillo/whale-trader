@@ -1,9 +1,9 @@
-import { Graphics, Container } from 'pixi.js'
+import * as PIXI from 'pixi.js'
 
 export class Bubbles {
   constructor(app, parent) {
     this.app = app
-    this.container = new Container()
+    this.container = new PIXI.Container()
     parent.addChild(this.container)
     this.bubbles = []
 
@@ -14,13 +14,13 @@ export class Bubbles {
 
   _spawn(randomY = false) {
     const { width, height } = this.app.screen
-    const g = new Graphics()
+    const g = new PIXI.Graphics()
     const r = 2 + Math.random() * 5
 
-    g.circle(0, 0, r)
-    g.fill({ color: 0x88ddff, alpha: 0 })
-    g.circle(0, 0, r)
-    g.stroke({ color: 0xaaeeff, alpha: 0.4 + Math.random() * 0.3, width: 0.8 })
+    g.lineStyle(0.8, 0xaaeeff, 0.4 + Math.random() * 0.3)
+    g.beginFill(0x88ddff, 0)
+    g.drawCircle(0, 0, r)
+    g.endFill()
 
     g.x = Math.random() * width
     g.y = randomY ? Math.random() * height : height + r * 2
@@ -51,7 +51,6 @@ export class Bubbles {
       b.gfx.y -= b.speed * delta
       b.gfx.x = b.baseX + Math.sin(b.wobble) * b.wobbleAmp
 
-      // Fade in/out
       const lifeRatio = b.life / b.maxLife
       let alpha = b.alpha
       if (lifeRatio < 0.1) alpha *= lifeRatio / 0.1

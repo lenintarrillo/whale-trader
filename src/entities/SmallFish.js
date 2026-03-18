@@ -1,17 +1,16 @@
-import { Container, Graphics } from 'pixi.js'
+import * as PIXI from 'pixi.js'
 
 export class SmallFish {
   constructor(app, parent) {
     this.app = app
-    this.container = new Container()
+    this.container = new PIXI.Container()
     parent.addChild(this.container)
-    this.graphic = new Graphics()
+    this.graphic = new PIXI.Graphics()
     this.container.addChild(this.graphic)
     this.fish = []
     this.time = 0
     this.spawnTimer = 0
 
-    // Spawn initial fish
     for (let i = 0; i < 6; i++) {
       this._spawn(true)
     }
@@ -54,7 +53,6 @@ export class SmallFish {
       f.wobble += 0.03 * delta
       f.y += Math.sin(f.wobble) * f.wobbleAmp
 
-      // Remove if off screen
       if (f.x > width + 60 || f.x < -60) {
         this.fish.splice(idx, 1)
         return
@@ -66,26 +64,31 @@ export class SmallFish {
       const y = f.y
 
       // Tail
-      g.poly([
+      g.beginFill(f.color, 0.7)
+      g.drawPolygon([
         x - 10 * flip, y,
         x - 18 * flip, y - f.size * 0.5 + tail,
         x - 18 * flip, y + f.size * 0.5 + tail,
       ])
-      g.fill({ color: f.color, alpha: 0.7 })
+      g.endFill()
 
       // Body
-      g.ellipse(x, y, f.size * 1.4, f.size * 0.7)
-      g.fill({ color: f.color, alpha: 0.85 })
+      g.beginFill(f.color, 0.85)
+      g.drawEllipse(x, y, f.size * 1.4, f.size * 0.7)
+      g.endFill()
 
       // Belly shine
-      g.ellipse(x + 2 * flip, y + 1, f.size * 0.7, f.size * 0.35)
-      g.fill({ color: 0xffffff, alpha: 0.25 })
+      g.beginFill(0xffffff, 0.25)
+      g.drawEllipse(x + 2 * flip, y + 1, f.size * 0.7, f.size * 0.35)
+      g.endFill()
 
       // Eye
-      g.circle(x + f.size * 0.6 * flip, y - f.size * 0.1, f.size * 0.22)
-      g.fill({ color: 0x111111 })
-      g.circle(x + f.size * 0.65 * flip, y - f.size * 0.12, f.size * 0.08)
-      g.fill({ color: 0xffffff })
+      g.beginFill(0x111111)
+      g.drawCircle(x + f.size * 0.6 * flip, y - f.size * 0.1, f.size * 0.22)
+      g.endFill()
+      g.beginFill(0xffffff)
+      g.drawCircle(x + f.size * 0.65 * flip, y - f.size * 0.12, f.size * 0.08)
+      g.endFill()
     })
   }
 }

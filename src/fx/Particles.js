@@ -1,9 +1,9 @@
-import { Container, Graphics } from 'pixi.js'
+import * as PIXI from 'pixi.js'
 
 export class Particles {
   constructor(app, parent) {
     this.app = app
-    this.container = new Container()
+    this.container = new PIXI.Container()
     parent.addChild(this.container)
     this.particles = []
   }
@@ -24,9 +24,10 @@ export class Particles {
       const color = colors[Math.floor(Math.random() * colors.length)]
       const sz = size * (0.5 + Math.random())
 
-      const g = new Graphics()
-      g.circle(0, 0, sz)
-      g.fill({ color })
+      const g = new PIXI.Graphics()
+      g.beginFill(color)
+      g.drawCircle(0, 0, sz)
+      g.endFill()
       g.x = x
       g.y = y
 
@@ -61,11 +62,11 @@ export class Particles {
       const spd = 3 + Math.random() * 6
       const r = 3 + Math.random() * 6
 
-      const g = new Graphics()
-      g.circle(0, 0, r)
-      g.fill({ color: 0x88ddff, alpha: 0.3 })
-      g.circle(0, 0, r)
-      g.stroke({ color: 0xaaeeff, alpha: 0.7, width: 1 })
+      const g = new PIXI.Graphics()
+      g.lineStyle(1, 0xaaeeff, 0.7)
+      g.beginFill(0x88ddff, 0.3)
+      g.drawCircle(0, 0, r)
+      g.endFill()
       g.x = x
       g.y = y
 

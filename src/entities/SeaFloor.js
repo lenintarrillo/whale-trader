@@ -1,21 +1,20 @@
-import { Container, Graphics } from 'pixi.js'
+import * as PIXI from 'pixi.js'
 
 export class SeaFloor {
   constructor(app, parent) {
     this.app = app
-    this.container = new Container()
+    this.container = new PIXI.Container()
     parent.addChild(this.container)
 
     this.scrollX = 0
     this.time = 0
 
-    this.rocksGraphic = new Graphics()
+    this.rocksGraphic = new PIXI.Graphics()
     this.container.addChild(this.rocksGraphic)
 
-    this.algaeGraphic = new Graphics()
+    this.algaeGraphic = new PIXI.Graphics()
     this.container.addChild(this.algaeGraphic)
 
-    // Generate random rocks and algae data
     this.rocks = this._generateRocks()
     this.algae = this._generateAlgae()
   }
@@ -61,7 +60,7 @@ export class SeaFloor {
 
   update(delta) {
     this.time += delta * 0.04
-    this.scrollX += delta * 0.8 // scroll speed
+    this.scrollX += delta * 0.8
 
     const { width } = this.app.screen
     const wrap = width * 2.5
@@ -69,17 +68,16 @@ export class SeaFloor {
     const g = this.rocksGraphic
     g.clear()
 
-    // Draw rocks
     this.rocks.forEach(rock => {
       const x = ((rock.x - this.scrollX) % wrap + wrap) % wrap - 60
-      g.roundRect(x - rock.w / 2, rock.y - rock.h, rock.w, rock.h, rock.rx)
-      g.fill({ color: rock.color })
-      // Rock highlight
-      g.roundRect(x - rock.w * 0.3, rock.y - rock.h + 3, rock.w * 0.4, rock.h * 0.35, 4)
-      g.fill({ color: 0x2a5a3a, alpha: 0.3 })
+      g.beginFill(rock.color)
+      g.drawRoundedRect(x - rock.w / 2, rock.y - rock.h, rock.w, rock.h, rock.rx)
+      g.endFill()
+      g.beginFill(0x2a5a3a, 0.3)
+      g.drawRoundedRect(x - rock.w * 0.3, rock.y - rock.h + 3, rock.w * 0.4, rock.h * 0.35, 4)
+      g.endFill()
     })
 
-    // Draw algae
     const ag = this.algaeGraphic
     ag.clear()
 
@@ -93,30 +91,24 @@ export class SeaFloor {
         const swayAmp = (s + 1) / alg.segments
         const nx = x + sway * swayAmp
         const ny = alg.baseY - (s + 1) * alg.segmentH
-
         const w = alg.width * (1 - s * 0.2)
 
-        ag.moveTo(prevX - w / 2, prevY)
-        ag.bezierCurveTo(
-          prevX - w / 2, prevY - alg.segmentH * 0.5,
-          nx - w / 2, ny + alg.segmentH * 0.5,
-          nx - w / 2, ny
-        )
-        ag.lineTo(nx + w / 2, ny)
-        ag.bezierCurveTo(
-          nx + w / 2, ny + alg.segmentH * 0.5,
-          prevX + w / 2, prevY - alg.segmentH * 0.5,
-          prevX + w / 2, prevY
-        )
-        ag.fill({ color: s % 2 === 0 ? alg.color : alg.darkColor })
+        ag.beginFill(s % 2 === 0 ? alg.color : alg.darkColor)
+        ag.drawPolygon([
+          prevX - w / 2, prevY,
+          prevX + w / 2, prevY,
+          nx + w / 2, ny,
+          nx - w / 2, ny,
+        ])
+        ag.endFill()
 
         prevX = nx
         prevY = ny
       }
 
-      // Algae tip rounded
-      ag.circle(prevX, prevY, alg.width * 0.5)
-      ag.fill({ color: alg.color })
+      ag.beginFill(alg.color)
+      ag.drawCircle(prevX, prevY, alg.width * 0.5)
+      ag.endFill()
     })
   }
 }
