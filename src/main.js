@@ -8,13 +8,17 @@ const app = new Application()
 
 console.log('2. App created')
 
+
+
 await app.init({
   resizeTo: document.getElementById('game-container'),
   backgroundColor: 0x020b18,
   antialias: true,
   resolution: window.devicePixelRatio || 1,
   autoDensity: true,
+  preference: 'webgl', // ← forzar WebGL en lugar de WebGPU
 })
+
 
 console.log('3. App initialized')
 
