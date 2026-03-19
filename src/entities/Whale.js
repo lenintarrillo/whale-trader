@@ -42,6 +42,12 @@ export class Whale {
     }
 
     this._setPose('swim')
+
+    // Tamaño de la ballena
+const baseScale = this.app.screen.width < 768 ? 0.35 : 0.55
+this.container.scale.set(baseScale)
+this.baseScale = baseScale
+
   }
 
   _setPose(name) {
@@ -81,7 +87,7 @@ export class Whale {
     const tilt = Math.max(-0.25, Math.min(0.25, dy * 0.001))
     this.container.rotation = tilt
 
-    const breatheScale = 1 + Math.sin(this.time * 1.4) * 0.015
+    const breatheScale = this.baseScale + Math.sin(this.time * 1.4) * 0.008
     this.container.scale.set(breatheScale)
 
     this.container.x = this.x
