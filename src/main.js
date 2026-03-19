@@ -3,6 +3,7 @@ import { OceanScene } from './scenes/OceanScene.js'
 import { ProfileModal } from './ui/ProfileModal.js'
 import { OrientationGuard } from './ui/OrientationGuard.js'
 import { LoadingScreen } from './ui/LoadingScreen.js'
+import { ModeSelector } from './ui/ModeSelector.js'
 
 const loading = new LoadingScreen()
 
@@ -20,6 +21,13 @@ const ocean = new OceanScene(app)
 await ocean.init()
 
 loading.hide()
+
+// Mode selector
+const selector = new ModeSelector()
+const mode = await selector.show()
+
+// Pass mode to ocean
+ocean.setMode(mode)
 
 new ProfileModal()
 new OrientationGuard()

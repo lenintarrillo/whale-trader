@@ -146,6 +146,40 @@ export class OceanScene {
     this.whale.setPose('swim')
   }
 
+
+  setMode(mode) {
+  this.mode = mode
+
+  // Remove existing panel
+  const existing = document.getElementById('trading-panel')
+  if (existing) existing.remove()
+
+  if (mode === 'simple') {
+    // Import and use SimpleTradingPanel
+    import('../ui/SimpleTradingPanel.js').then(({ SimpleTradingPanel }) => {
+      this.panel = new SimpleTradingPanel(
+        (type, amount, leverage, sl, tp) => this._openPosition(type, amount, leverage, sl, tp),
+        () => this._closePosition()
+      )
+      this.panel.updateState(this.engine.getState())
+    })
+  } else {
+    // Use existing TradingPanel
+    import('../ui/TradingPanel.js').then(({ TradingPanel }) => {
+      this.panel = new TradingPanel(
+        (type, amount, leverage, stopLoss, takeProfit) => this._openPosition(type, amount, leverage, stopLoss, takeProfit),
+        () => this._closePosition()
+      )
+      this.panel.updateState(this.engine.getState())
+    })
+  }
+
+  // Show HUD
+  import('../ui/GameHUD.js').then(({ GameHUD }) => {
+    this.hud = new GameHUD()
+  })
+}
+
   async _onLiquidation(result) {
     const state = this.engine.getState()
     this.screenFX.shake(16, 800)
@@ -217,6 +251,15 @@ export class OceanScene {
       this.levelLines.hide()
       this._closeByTrigger(result)
     }
+
+
+    if (this.hud) {
+  this.hud.updateBtcPrice(price)
+  this.hud.updateBalance(this.engine.getState().balance)
+  const pos = this.engine.getState().position
+  this.hud.updatePnL(pos ? pos.pnl || 0 : null)
+}
+
   }
 
   _drawBackground() {
